@@ -81,6 +81,7 @@ const AddEditDestination = () => {
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
     setUploading(true);
     setUploadProgress(0);
 
@@ -90,8 +91,18 @@ const AddEditDestination = () => {
 
     let uploadUrl = "";
     try {
-      // Create bucket if not exists (silent error if already exists)
-      await supabase.storage.createBucket(STORAGE_BUCKET, { public: true }).catch(() => {});
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "You must be logged in to upload files.",
+          variant: "destructive"
+        });
+        setUploading(false);
+        return;
+      }
 
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
@@ -100,6 +111,7 @@ const AddEditDestination = () => {
           cacheControl: '3600',
           upsert: false,
         });
+        
       if (error) throw error;
 
       // Get public URL
@@ -107,22 +119,26 @@ const AddEditDestination = () => {
         .from(STORAGE_BUCKET)
         .getPublicUrl(filePath);
       uploadUrl = publicData?.publicUrl;
+      
       if (!uploadUrl) throw new Error('Failed to get public URL for uploaded image');
 
       // Set image URL in the form
       form.setValue('imageUrl', uploadUrl, { shouldValidate: true, shouldDirty: true });
       setImagePreview(uploadUrl);
+      
       toast({
         title: "Image Uploaded",
         description: "Your image was uploaded successfully.",
       });
     } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
         description: error.message || "An error occurred during upload.",
         variant: "destructive"
       });
     }
+    
     setUploading(false);
     setUploadProgress(100);
   };
@@ -300,4 +316,3 @@ const AddEditDestination = () => {
 };
 
 export default AddEditDestination;
-
