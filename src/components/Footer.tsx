@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { ArrowRight, Facebook, Instagram, Twitter, Youtube, Mail } from 'lucide-react';
+import { ArrowRight, Facebook, Instagram, Twitter, Youtube } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
