@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data
 const mockDestinations = [
@@ -41,6 +42,8 @@ const formSchema = z.object({
 
 type DestinationFormValues = z.infer<typeof formSchema>;
 
+const STORAGE_BUCKET = 'admin-destinations';
+
 const AddEditDestination = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -63,6 +66,66 @@ const AddEditDestination = () => {
       mapUrl: '',
     },
   });
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [imagePreview, setImagePreview] = useState<string>(form.getValues('imageUrl') || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update image preview if the imageUrl changes
+  useEffect(() => {
+    const url = form.watch('imageUrl');
+    if (url) setImagePreview(url);
+  }, [form.watch('imageUrl')]);
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadProgress(0);
+
+    // Generate a unique path
+    const fileExt = file.name.split('.').pop();
+    const filePath = `destination-${Date.now()}.${fileExt}`;
+
+    let uploadUrl = "";
+    try {
+      // Create bucket if not exists (silent error if already exists)
+      await supabase.storage.createBucket(STORAGE_BUCKET, { public: true }).catch(() => {});
+
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+      if (error) throw error;
+
+      // Get public URL
+      const { data: publicData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(filePath);
+      uploadUrl = publicData?.publicUrl;
+      if (!uploadUrl) throw new Error('Failed to get public URL for uploaded image');
+
+      // Set image URL in the form
+      form.setValue('imageUrl', uploadUrl, { shouldValidate: true, shouldDirty: true });
+      setImagePreview(uploadUrl);
+      toast({
+        title: "Image Uploaded",
+        description: "Your image was uploaded successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "An error occurred during upload.",
+        variant: "destructive"
+      });
+    }
+    setUploading(false);
+    setUploadProgress(100);
+  };
 
   const onSubmit = (values: DestinationFormValues) => {
     // In a real app, you would save to a database
@@ -150,6 +213,35 @@ const AddEditDestination = () => {
                 </FormItem>
               )}
             />
+
+            <div>
+              <FormLabel className="mb-2 block">Main Image</FormLabel>
+              <div className="flex gap-6 items-center">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="block w-full border border-input rounded-md text-sm file:bg-hurulu-teal/40 file:text-hurulu-teal"
+                  disabled={uploading}
+                  onChange={handleFileChange}
+                />
+                {uploading && (
+                  <span className="text-xs text-hurulu-teal animate-pulse">
+                    Uploading...
+                  </span>
+                )}
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-16 w-24 object-cover rounded border"
+                  />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload an image or paste a valid image URL below.
+              </p>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
@@ -159,7 +251,14 @@ const AddEditDestination = () => {
                   <FormItem>
                     <FormLabel>Main Image URL</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/image.jpg" {...field} />
+                      <Input
+                        placeholder="https://example.com/image.jpg"
+                        {...field}
+                        onBlur={e => {
+                          field.onBlur();
+                          setImagePreview(e.target.value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,7 +288,7 @@ const AddEditDestination = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={form.formState.isSubmitting || uploading}>
                 {isEditMode ? 'Update Destination' : 'Create Destination'}
               </Button>
             </div>
@@ -201,3 +300,4 @@ const AddEditDestination = () => {
 };
 
 export default AddEditDestination;
+
