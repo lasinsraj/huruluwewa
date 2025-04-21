@@ -11,6 +11,13 @@ import Reviews from "./pages/Reviews";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
+// Admin Routes
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import DestinationList from "./pages/admin/destinations/DestinationList";
+import AddEditDestination from "./pages/admin/destinations/AddEditDestination";
+import AdminNotFound from "./pages/admin/AdminNotFound";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -20,12 +27,23 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/destination" element={<Destination />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/contact" element={<Contact />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="destinations" element={<DestinationList />} />
+            <Route path="destinations/add" element={<AddEditDestination />} />
+            <Route path="destinations/edit/:id" element={<AddEditDestination />} />
+            <Route path="*" element={<AdminNotFound />} />
+          </Route>
+          
+          {/* Catch-all Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </TooltipProvider>
