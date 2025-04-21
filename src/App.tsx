@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Destination from "./pages/Destination";
 import Gallery from "./pages/Gallery";
@@ -17,36 +18,42 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import DestinationList from "./pages/admin/destinations/DestinationList";
 import AddEditDestination from "./pages/admin/destinations/AddEditDestination";
 import AdminNotFound from "./pages/admin/AdminNotFound";
+import AdminAuth from "./pages/admin/AdminAuth";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/destination" element={<Destination />} />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/contact" element={<Contact />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="destinations" element={<DestinationList />} />
-            <Route path="destinations/add" element={<AddEditDestination />} />
-            <Route path="destinations/edit/:id" element={<AddEditDestination />} />
-            <Route path="*" element={<AdminNotFound />} />
-          </Route>
-          
-          {/* Catch-all Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/destination" element={<Destination />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/contact" element={<Contact />} />
+            
+            {/* Admin Auth Route */}
+            <Route path="/admin/login" element={<AdminAuth />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="destinations" element={<DestinationList />} />
+              <Route path="destinations/add" element={<AddEditDestination />} />
+              <Route path="destinations/edit/:id" element={<AddEditDestination />} />
+              <Route path="*" element={<AdminNotFound />} />
+            </Route>
+            
+            {/* Catch-all Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   </BrowserRouter>
 );
