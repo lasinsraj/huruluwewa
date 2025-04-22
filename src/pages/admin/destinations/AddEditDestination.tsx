@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,9 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+
+// Define storage bucket name constant
+const STORAGE_BUCKET = 'destinations';
 
 type Destination = {
   id: string;
@@ -136,6 +140,16 @@ const AddEditDestination = () => {
         });
         setUploading(false);
         return;
+      }
+
+      // Create the storage bucket if it doesn't exist
+      const { error: bucketError } = await supabase.storage.createBucket(STORAGE_BUCKET, {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+      });
+
+      if (bucketError && !bucketError.message.includes('already exists')) {
+        throw bucketError;
       }
 
       const { data, error } = await supabase.storage

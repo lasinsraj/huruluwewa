@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,38 @@ const DestinationList = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to load destinations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add the handleDelete function
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this destination?')) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('destinations')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update the local state
+      setDestinations(prev => prev.filter(dest => dest.id !== id));
+      
+      toast({
+        title: "Destination Deleted",
+        description: "The destination has been removed successfully.",
+      });
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete the destination",
         variant: "destructive"
       });
     } finally {
