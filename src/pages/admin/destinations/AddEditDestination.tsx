@@ -36,8 +36,8 @@ const formSchema = z.object({
   location: z.string().min(2, 'Location must be at least 2 characters'),
   shortDescription: z.string().min(10, 'Short description must be at least 10 characters').max(200, 'Short description must be less than 200 characters'),
   fullDescription: z.string().min(50, 'Full description must be at least 50 characters'),
-  imageUrl: z.string().url('Must be a valid URL'),
-  mapUrl: z.string().url('Must be a valid URL'),
+  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  mapUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
 type DestinationFormValues = z.infer<typeof formSchema>;
