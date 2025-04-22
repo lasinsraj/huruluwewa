@@ -17,19 +17,8 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
-// Mock data
-const mockDestinations = [
-  {
-    id: '1',
-    name: 'Hurulu Wewa',
-    location: 'North Central Province, Sri Lanka',
-    shortDescription: 'A paradise for wildlife enthusiasts and nature lovers.',
-    fullDescription: 'Hurulu Wewa is a man-made reservoir located in the North Central Province of Sri Lanka, surrounded by the Hurulu Forest Reserve. This remarkable ecosystem is designated as a biosphere reserve by UNESCO, recognized for its exceptional biodiversity and ecological significance.',
-    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e',
-    mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126743.55024608219!2d80.54768226729283!3d8.130713918878696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3afcd5bf70cac095%3A0xd8b2f035f7ef4921!2sHurulu%20Eco%20Park!5e0!3m2!1sen!2sus!4v1713760323457!5m2!1sen!2sus'
-  }
-];
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -48,16 +37,49 @@ const AddEditDestination = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const isEditMode = !!id;
+  
+  const [loading, setLoading] = useState(false);
+  const [destination, setDestination] = useState<DestinationFormValues | null>(null);
 
-  // Get destination if in edit mode
-  const existingDestination = isEditMode 
-    ? mockDestinations.find(dest => dest.id === id) 
-    : null;
+  // Fetch destination if in edit mode
+  useEffect(() => {
+    if (isEditMode) {
+      fetchDestination(id);
+    }
+  }, [id, isEditMode]);
+
+  const fetchDestination = async (destinationId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('destinations')
+        .select('*')
+        .eq('id', destinationId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setDestination(data);
+        form.reset(data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching destination:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load destination",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const form = useForm<DestinationFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: existingDestination || {
+    defaultValues: destination || {
       name: '',
       location: '',
       shortDescription: '',
@@ -143,17 +165,70 @@ const AddEditDestination = () => {
     setUploadProgress(100);
   };
 
-  const onSubmit = (values: DestinationFormValues) => {
-    // In a real app, you would save to a database
-    console.log(values);
-    
-    toast({
-      title: isEditMode ? "Destination Updated" : "Destination Created",
-      description: `Successfully ${isEditMode ? 'updated' : 'created'} ${values.name}`,
-    });
-    
-    navigate('/admin/destinations');
+  const onSubmit = async (values: DestinationFormValues) => {
+    try {
+      setLoading(true);
+      
+      // Check if user is authenticated
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "You must be logged in to save destinations.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log(values);
+      
+      if (isEditMode) {
+        // Update existing destination
+        const { error } = await supabase
+          .from('destinations')
+          .update(values)
+          .eq('id', id);
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Destination Updated",
+          description: `Successfully updated ${values.name}`,
+        });
+      } else {
+        // Create new destination
+        const { error } = await supabase
+          .from('destinations')
+          .insert([values]);
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Destination Created",
+          description: `Successfully created ${values.name}`,
+        });
+      }
+      
+      navigate('/admin/destinations');
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({
+        title: "Save Failed",
+        description: error.message || "An error occurred while saving the destination.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading && isEditMode) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-hurulu-teal" />
+        <span className="ml-2">Loading destination...</span>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -304,7 +379,7 @@ const AddEditDestination = () => {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting || uploading}>
+              <Button type="submit" disabled={form.formState.isSubmitting || uploading || loading}>
                 {isEditMode ? 'Update Destination' : 'Create Destination'}
               </Button>
             </div>

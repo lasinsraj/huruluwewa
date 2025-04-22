@@ -1,28 +1,92 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MapPin, Plus, Edit, Trash2 } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-// Mock data for destination
-const mockDestinations = [
-  {
-    id: '1',
-    name: 'Hurulu Wewa',
-    location: 'North Central Province, Sri Lanka',
-    shortDescription: 'A paradise for wildlife enthusiasts and nature lovers.',
-    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e'
-  }
-];
+type Destination = {
+  id: string;
+  name: string;
+  location: string;
+  shortDescription: string;
+  imageUrl?: string;
+  fullDescription: string;
+  mapUrl?: string;
+  created_at?: string;
+};
 
 const DestinationList = () => {
-  const [destinations, setDestinations] = useState(mockDestinations);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this destination?')) {
-      setDestinations(prev => prev.filter(dest => dest.id !== id));
+  useEffect(() => {
+    fetchDestinations();
+  }, []);
+
+  const fetchDestinations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('destinations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setDestinations(data || []);
+    } catch (error: any) {
+      console.error('Error fetching destinations:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load destinations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this destination?')) {
+      try {
+        setLoading(true);
+        const { error } = await supabase
+          .from('destinations')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        
+        setDestinations(prev => prev.filter(dest => dest.id !== id));
+        
+        toast({
+          title: "Success",
+          description: "Destination deleted successfully",
+        });
+      } catch (error: any) {
+        console.error('Error deleting destination:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete destination",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  if (loading && destinations.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-hurulu-teal mb-4" />
+        <p>Loading destinations...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -30,7 +94,7 @@ const DestinationList = () => {
         <h2 className="text-2xl font-bold">Destinations</h2>
         <Link to="/admin/destinations/add">
           <Button>
-            <Plus size={16} />
+            <Plus size={16} className="mr-1" />
             Add Destination
           </Button>
         </Link>
@@ -44,7 +108,7 @@ const DestinationList = () => {
           <div className="mt-6">
             <Link to="/admin/destinations/add">
               <Button>
-                <Plus size={16} />
+                <Plus size={16} className="mr-1" />
                 Add Destination
               </Button>
             </Link>
@@ -77,7 +141,7 @@ const DestinationList = () => {
                       <div className="h-10 w-10 flex-shrink-0">
                         <img 
                           className="h-10 w-10 rounded-md object-cover" 
-                          src={destination.imageUrl} 
+                          src={destination.imageUrl || 'https://via.placeholder.com/40'} 
                           alt={destination.name} 
                         />
                       </div>
@@ -104,6 +168,7 @@ const DestinationList = () => {
                         size="sm" 
                         className="text-red-500 hover:text-red-700"
                         onClick={() => handleDelete(destination.id)}
+                        disabled={loading}
                       >
                         <Trash2 size={16} />
                       </Button>
