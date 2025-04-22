@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -40,13 +40,9 @@ const AdminAuth = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const { user, session } = useAuth();
-
-  // If already logged in and is an admin, redirect to admin dashboard
-  if (user && allowedAdmins.includes(user.email as string)) {
-    return <Navigate to="/admin" />;
-  }
-
+  const { user } = useAuth();
+  
+  // Initialize form outside of any conditional returns
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -55,6 +51,7 @@ const AdminAuth = () => {
     },
   });
 
+  // Handle onSubmit after form initialization
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     setAuthError(null);
@@ -95,70 +92,82 @@ const AdminAuth = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Admin Login
-          </CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access the admin area
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {authError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{authError}</AlertDescription>
-            </Alert>
-          )}
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="you@example.com" type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </Button>
-            </form>
-          </Form>
-          
-          <div className="text-center mt-4">
-            <a href="/" className="text-sm text-gray-500 hover:text-hurulu-teal">
-              Return to main site
-            </a>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // Render different UI based on auth state, but AFTER all hooks are called
+  const renderContent = () => {
+    if (user && allowedAdmins.includes(user.email as string)) {
+      // Redirect if already logged in
+      navigate('/admin');
+      return null;
+    }
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">
+              Admin Login
+            </CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access the admin area
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {authError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="you@example.com" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Logging in...' : 'Login'}
+                </Button>
+              </form>
+            </Form>
+            
+            <div className="text-center mt-4">
+              <a href="/" className="text-sm text-gray-500 hover:text-hurulu-teal">
+                Return to main site
+              </a>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Return the content after all hooks are initialized
+  return renderContent();
 };
 
 export default AdminAuth;
