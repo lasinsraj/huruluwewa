@@ -1,10 +1,99 @@
-
+import { useEffect, useState } from 'react';
 import { Tab } from '@headlessui/react';
-import { MapPin, Calendar, Star, Info } from 'lucide-react';
+import { MapPin, Calendar, Star, Info, Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useParams, useNavigate } from 'react-router-dom';
+
+type Destination = {
+  id: string;
+  name: string;
+  location: string;
+  short_description: string;
+  full_description: string;
+  image_url?: string;
+  map_url?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 const Destination = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
+
+  useEffect(() => {
+    fetchDestinations();
+    if (id) {
+      fetchDestination(id);
+    }
+  }, [id]);
+
+  const fetchDestinations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('destinations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setAllDestinations(data || []);
+      
+      if (data && data.length > 0 && !id) {
+        setDestination(data[0]);
+        navigate(`/destination/${data[0].id}`, { replace: true });
+      } else if (data && data.length === 0) {
+        toast({
+          title: "No destinations found",
+          description: "Please add some destinations in the admin panel.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching destinations:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load destinations",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDestination = async (destinationId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('destinations')
+        .select('*')
+        .eq('id', destinationId)
+        .single();
+      
+      if (error) throw error;
+      
+      setDestination(data);
+    } catch (error: any) {
+      console.error('Error fetching destination:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load destination",
+        variant: "destructive"
+      });
+      
+      navigate('/destination');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const itineraries = [
     {
       title: "1-Day Safari Adventure",
@@ -42,6 +131,40 @@ const Destination = () => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-10 w-10 animate-spin text-hurulu-teal mr-2" />
+          <p>Loading destination...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!destination && !loading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+          <h1 className="heading-1 text-hurulu-dark mb-4">No Destination Found</h1>
+          <p className="text-lg text-gray-600 mb-6">
+            We couldn't find the destination you're looking for.
+          </p>
+          <button 
+            className="btn-primary"
+            onClick={() => navigate('/')}
+          >
+            Return to Home
+          </button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -51,8 +174,8 @@ const Destination = () => {
         <section className="relative h-[60vh]">
           <div className="absolute inset-0 overflow-hidden">
             <img
-              src="https://images.unsplash.com/photo-1469474968028-56623f02e42e"
-              alt="Hurulu Wewa landscape"
+              src={destination?.image_url || "https://images.unsplash.com/photo-1469474968028-56623f02e42e"}
+              alt={`${destination?.name} landscape`}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-transparent" />
@@ -60,9 +183,9 @@ const Destination = () => {
           
           <div className="container-custom relative h-full flex flex-col justify-center text-white">
             <div className="max-w-2xl">
-              <h1 className="heading-1 mb-4">Hurulu Wewa</h1>
+              <h1 className="heading-1 mb-4">{destination?.name}</h1>
               <p className="text-lg md:text-xl text-white/90">
-                A paradise for wildlife enthusiasts and nature lovers in the heart of Sri Lanka.
+                {destination?.short_description}
               </p>
             </div>
           </div>
@@ -73,23 +196,11 @@ const Destination = () => {
           <div className="container-custom">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2">
-                <h2 className="heading-2 text-hurulu-dark mb-6">About Hurulu Wewa</h2>
+                <h2 className="heading-2 text-hurulu-dark mb-6">About {destination?.name}</h2>
                 
                 <div className="prose max-w-none text-gray-700">
                   <p className="mb-4">
-                    Hurulu Wewa is a man-made reservoir located in the North Central Province of Sri Lanka, surrounded by the Hurulu Forest Reserve. This remarkable ecosystem is designated as a biosphere reserve by UNESCO, recognized for its exceptional biodiversity and ecological significance.
-                  </p>
-                  
-                  <p className="mb-4">
-                    The area is famous for its large elephant population, making it a prime destination for wildlife safaris. Beyond elephants, lucky visitors might spot leopards, sloth bears, deer, and numerous bird species that call this diverse habitat home.
-                  </p>
-                  
-                  <p className="mb-4">
-                    The landscape features a mix of dry zone forest, grasslands, and wetlands, creating a picturesque setting that's particularly stunning during sunrise and sunset. Professional and amateur photographers alike find endless inspiration in the natural beauty of Hurulu Wewa.
-                  </p>
-                  
-                  <p>
-                    In addition to its natural attractions, Hurulu Wewa is located near several historically and culturally significant sites, making it an excellent base for exploring the Cultural Triangle of Sri Lanka.
+                    {destination?.full_description}
                   </p>
                 </div>
                 
@@ -155,7 +266,7 @@ const Destination = () => {
                       <MapPin className="w-5 h-5 text-hurulu-teal mt-1 mr-3" />
                       <div>
                         <h4 className="font-medium text-hurulu-dark">Location</h4>
-                        <p className="text-gray-600">North Central Province, Sri Lanka, approximately 220 km from Colombo</p>
+                        <p className="text-gray-600">{destination?.location}</p>
                       </div>
                     </div>
                     
@@ -197,6 +308,35 @@ const Destination = () => {
                     </div>
                     
                     <div className="pt-4 border-t border-gray-200">
+                      {allDestinations.length > 1 && (
+                        <div className="mb-4">
+                          <h4 className="font-medium text-hurulu-dark mb-2">Other Destinations</h4>
+                          <div className="space-y-2">
+                            {allDestinations
+                              .filter(d => d.id !== destination?.id)
+                              .slice(0, 3)
+                              .map(dest => (
+                                <div 
+                                  key={dest.id}
+                                  className="flex items-center p-2 rounded hover:bg-white transition-colors cursor-pointer"
+                                  onClick={() => navigate(`/destination/${dest.id}`)}
+                                >
+                                  <div className="h-10 w-10 rounded overflow-hidden mr-2">
+                                    <img 
+                                      src={dest.image_url || "https://via.placeholder.com/40"} 
+                                      alt={dest.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-hurulu-dark">{dest.name}</p>
+                                    <p className="text-xs text-gray-500">{dest.location}</p>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
                       <button className="btn-primary w-full">Plan Your Visit</button>
                     </div>
                   </div>
@@ -212,8 +352,8 @@ const Destination = () => {
             <h2 className="heading-2 text-hurulu-dark mb-6 text-center">Location & Map</h2>
             <div className="rounded-lg overflow-hidden shadow-lg h-96">
               <iframe
-                title="Hurulu Wewa Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126743.55024608219!2d80.54768226729283!3d8.130713918878696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3afcd5bf70cac095%3A0xd8b2f035f7ef4921!2sHurulu%20Eco%20Park!5e0!3m2!1sen!2sus!4v1713760323457!5m2!1sen!2sus"
+                title={`${destination?.name} Map`}
+                src={destination?.map_url || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126743.55024608219!2d80.54768226729283!3d8.130713918878696!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3afcd5bf70cac095%3A0xd8b2f035f7ef4921!2sHurulu%20Eco%20Park!5e0!3m2!1sen!2sus!4v1713760323457!5m2!1sen!2sus"}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
