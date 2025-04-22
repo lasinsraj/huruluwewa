@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,18 +19,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 
+type Destination = {
+  id: string;
+  name: string;
+  location: string;
+  short_description: string;
+  full_description: string;
+  image_url?: string;
+  map_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   location: z.string().min(2, 'Location must be at least 2 characters'),
-  shortDescription: z.string().min(10, 'Short description must be at least 10 characters').max(200, 'Short description must be less than 200 characters'),
-  fullDescription: z.string().min(50, 'Full description must be at least 50 characters'),
-  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  mapUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  short_description: z.string().min(10, 'Short description must be at least 10 characters').max(200, 'Short description must be less than 200 characters'),
+  full_description: z.string().min(50, 'Full description must be at least 50 characters'),
+  image_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  map_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
 type DestinationFormValues = z.infer<typeof formSchema>;
-
-const STORAGE_BUCKET = 'admin-destinations';
 
 const AddEditDestination = () => {
   const { id } = useParams();
@@ -41,9 +50,8 @@ const AddEditDestination = () => {
   const isEditMode = !!id;
   
   const [loading, setLoading] = useState(false);
-  const [destination, setDestination] = useState<DestinationFormValues | null>(null);
+  const [destination, setDestination] = useState<Destination | null>(null);
 
-  // Fetch destination if in edit mode
   useEffect(() => {
     if (isEditMode) {
       fetchDestination(id);
@@ -57,13 +65,20 @@ const AddEditDestination = () => {
         .from('destinations')
         .select('*')
         .eq('id', destinationId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       
       if (data) {
         setDestination(data);
-        form.reset(data);
+        form.reset({
+          name: data.name,
+          location: data.location,
+          short_description: data.short_description,
+          full_description: data.full_description,
+          image_url: data.image_url || '',
+          map_url: data.map_url || ''
+        });
       }
     } catch (error: any) {
       console.error('Error fetching destination:', error);
@@ -82,23 +97,22 @@ const AddEditDestination = () => {
     defaultValues: destination || {
       name: '',
       location: '',
-      shortDescription: '',
-      fullDescription: '',
-      imageUrl: '',
-      mapUrl: '',
+      short_description: '',
+      full_description: '',
+      image_url: '',
+      map_url: '',
     },
   });
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [imagePreview, setImagePreview] = useState<string>(form.getValues('imageUrl') || '');
+  const [imagePreview, setImagePreview] = useState<string>(form.getValues('image_url') || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Update image preview if the imageUrl changes
   useEffect(() => {
-    const url = form.watch('imageUrl');
+    const url = form.watch('image_url');
     if (url) setImagePreview(url);
-  }, [form.watch('imageUrl')]);
+  }, [form.watch('image_url')]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -107,13 +121,11 @@ const AddEditDestination = () => {
     setUploading(true);
     setUploadProgress(0);
 
-    // Generate a unique path
     const fileExt = file.name.split('.').pop();
     const filePath = `destination-${Date.now()}.${fileExt}`;
 
     let uploadUrl = "";
     try {
-      // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -126,7 +138,6 @@ const AddEditDestination = () => {
         return;
       }
 
-      // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from(STORAGE_BUCKET)
         .upload(filePath, file, {
@@ -136,7 +147,6 @@ const AddEditDestination = () => {
         
       if (error) throw error;
 
-      // Get public URL
       const { data: publicData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(filePath);
@@ -144,8 +154,7 @@ const AddEditDestination = () => {
       
       if (!uploadUrl) throw new Error('Failed to get public URL for uploaded image');
 
-      // Set image URL in the form
-      form.setValue('imageUrl', uploadUrl, { shouldValidate: true, shouldDirty: true });
+      form.setValue('image_url', uploadUrl, { shouldValidate: true, shouldDirty: true });
       setImagePreview(uploadUrl);
       
       toast({
@@ -169,23 +178,17 @@ const AddEditDestination = () => {
     try {
       setLoading(true);
       
-      // Check if user is authenticated
-      if (!user) {
-        toast({
-          title: "Authentication Required",
-          description: "You must be logged in to save destinations.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      console.log(values);
-      
       if (isEditMode) {
-        // Update existing destination
         const { error } = await supabase
           .from('destinations')
-          .update(values)
+          .update({
+            name: values.name,
+            location: values.location,
+            short_description: values.short_description,
+            full_description: values.full_description,
+            image_url: values.image_url || null,
+            map_url: values.map_url || null,
+          })
           .eq('id', id);
           
         if (error) throw error;
@@ -195,10 +198,16 @@ const AddEditDestination = () => {
           description: `Successfully updated ${values.name}`,
         });
       } else {
-        // Create new destination
         const { error } = await supabase
           .from('destinations')
-          .insert([values]);
+          .insert([{
+            name: values.name,
+            location: values.location,
+            short_description: values.short_description,
+            full_description: values.full_description,
+            image_url: values.image_url || null,
+            map_url: values.map_url || null,
+          }]);
           
         if (error) throw error;
         
@@ -271,7 +280,7 @@ const AddEditDestination = () => {
             
             <FormField
               control={form.control}
-              name="shortDescription"
+              name="short_description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Short Description</FormLabel>
@@ -289,7 +298,7 @@ const AddEditDestination = () => {
             
             <FormField
               control={form.control}
-              name="fullDescription"
+              name="full_description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Description</FormLabel>
@@ -337,7 +346,7 @@ const AddEditDestination = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="image_url"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Main Image URL</FormLabel>
@@ -358,7 +367,7 @@ const AddEditDestination = () => {
               
               <FormField
                 control={form.control}
-                name="mapUrl"
+                name="map_url"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Google Maps Embed URL</FormLabel>

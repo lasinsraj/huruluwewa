@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,11 +9,12 @@ type Destination = {
   id: string;
   name: string;
   location: string;
-  shortDescription: string;
-  imageUrl?: string;
-  fullDescription: string;
-  mapUrl?: string;
+  short_description: string;
+  full_description: string;
+  image_url?: string;
+  map_url?: string;
   created_at?: string;
+  updated_at?: string;
 };
 
 const DestinationList = () => {
@@ -46,36 +46,6 @@ const DestinationList = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this destination?')) {
-      try {
-        setLoading(true);
-        const { error } = await supabase
-          .from('destinations')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-        
-        setDestinations(prev => prev.filter(dest => dest.id !== id));
-        
-        toast({
-          title: "Success",
-          description: "Destination deleted successfully",
-        });
-      } catch (error: any) {
-        console.error('Error deleting destination:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete destination",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
     }
   };
 
@@ -141,7 +111,7 @@ const DestinationList = () => {
                       <div className="h-10 w-10 flex-shrink-0">
                         <img 
                           className="h-10 w-10 rounded-md object-cover" 
-                          src={destination.imageUrl || 'https://via.placeholder.com/40'} 
+                          src={destination.image_url || 'https://via.placeholder.com/40'} 
                           alt={destination.name} 
                         />
                       </div>
@@ -154,7 +124,7 @@ const DestinationList = () => {
                     {destination.location}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {destination.shortDescription}
+                    {destination.short_description}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
