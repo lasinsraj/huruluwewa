@@ -18,6 +18,9 @@ import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DestinationList from "./pages/admin/destinations/DestinationList";
 import AddEditDestination from "./pages/admin/destinations/AddEditDestination";
+import AdminGallery from "./pages/admin/gallery/AdminGallery";
+import AdminReviews from "./pages/admin/reviews/AdminReviews";
+import AdminSettings from "./pages/admin/settings/AdminSettings";
 import AdminNotFound from "./pages/admin/AdminNotFound";
 import AdminAuth from "./pages/admin/AdminAuth";
 
@@ -49,6 +52,9 @@ const App = () => (
                 <Route path="destinations" element={<DestinationList />} />
                 <Route path="destinations/add" element={<AddEditDestination />} />
                 <Route path="destinations/edit/:id" element={<AddEditDestination />} />
+                <Route path="gallery" element={<AdminGallery />} />
+                <Route path="reviews" element={<AdminReviews />} />
+                <Route path="settings" element={<AdminSettings />} />
                 <Route path="*" element={<AdminNotFound />} />
               </Route>
               
