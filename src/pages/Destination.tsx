@@ -28,8 +28,13 @@ const Destination = () => {
   const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
 
   useEffect(() => {
+    console.log("Current ID param:", id);
     fetchDestinations();
+  }, []);
+
+  useEffect(() => {
     if (id) {
+      console.log("Fetching specific destination with ID:", id);
       fetchDestination(id);
     }
   }, [id]);
@@ -44,9 +49,11 @@ const Destination = () => {
 
       if (error) throw error;
       
+      console.log("All destinations fetched:", data);
       setAllDestinations(data || []);
       
       if (data && data.length > 0 && !id) {
+        console.log("No ID provided, using first destination:", data[0]);
         setDestination(data[0]);
         navigate(`/destination/${data[0].id}`, { replace: true });
       } else if (data && data.length === 0) {
@@ -64,7 +71,9 @@ const Destination = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      if (!id) {
+        setLoading(false);
+      }
     }
   };
 
@@ -77,8 +86,12 @@ const Destination = () => {
         .eq('id', destinationId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching destination:", error);
+        throw error;
+      }
       
+      console.log("Specific destination fetched:", data);
       setDestination(data);
     } catch (error: any) {
       console.error('Error fetching destination:', error);

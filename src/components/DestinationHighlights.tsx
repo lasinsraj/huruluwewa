@@ -28,7 +28,10 @@ const DestinationHighlights = () => {
 
         if (error) throw error;
         
-        setDestinations(data || []);
+        if (data) {
+          console.log('Fetched destinations:', data);
+          setDestinations(data);
+        }
       } catch (error) {
         console.error('Error fetching destinations:', error);
       } finally {
