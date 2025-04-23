@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Star, StarHalf, StarOff } from "lucide-react";
 
 // Helper for rendering stars
