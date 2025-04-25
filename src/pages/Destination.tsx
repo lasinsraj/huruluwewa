@@ -9,6 +9,7 @@ import DestinationHero from '@/components/destination/DestinationHero';
 import DestinationItineraries from '@/components/destination/DestinationItineraries';
 import DestinationSidebar from '@/components/destination/DestinationSidebar';
 import DestinationMap from '@/components/destination/DestinationMap';
+import DestinationAbout from '@/components/destination/DestinationAbout';
 
 type Destination = {
   id: string;
@@ -198,11 +199,10 @@ const Destination = () => {
               <div className="container-custom">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                   <div className="lg:col-span-2">
-                    <h2 className="heading-2 text-hurulu-dark mb-6">About {destination.name}</h2>
-                    
-                    <div className="prose max-w-none text-gray-700">
-                      <p className="mb-4">{destination.full_description}</p>
-                    </div>
+                    <DestinationAbout 
+                      name={destination.name}
+                      description={destination.full_description}
+                    />
                     
                     <DestinationItineraries itineraries={itineraries} />
                   </div>
