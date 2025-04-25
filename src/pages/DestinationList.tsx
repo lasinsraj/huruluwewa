@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DestinationCard from "@/components/DestinationCard";
 import { Link } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Destination = {
   id: string;
@@ -36,6 +37,7 @@ const getMockedDestination = (d: any, i: number): Destination => ({
 const DestinationList = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchDestinations = async () => {
@@ -58,7 +60,7 @@ const DestinationList = () => {
   return (
     <section className="py-10 bg-gray-50 min-h-screen">
       <div className="container-custom">
-        <div className="font-semibold text-xl text-hurulu-dark mb-6">
+        <div className="font-semibold text-xl md:text-2xl text-hurulu-dark mb-6">
           {destinations.length > 0 ? `${destinations.length} Places` : "Destinations"}
         </div>
         {loading ? (
@@ -70,9 +72,9 @@ const DestinationList = () => {
             <p className="text-gray-500">No destinations found.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-8">
+          <div className={isMobile ? "flex flex-col gap-4" : "grid md:grid-cols-2 lg:grid-cols-3 gap-6"}>
             {destinations.map((dest) => (
-              <Link key={dest.id} to={`/destination/${dest.id}`}>
+              <Link key={dest.id} to={`/destination/${dest.id}`} className="block">
                 <DestinationCard destination={dest} />
               </Link>
             ))}

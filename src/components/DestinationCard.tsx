@@ -32,7 +32,7 @@ const getCategoryIcon = (category?: string) => {
 
 const DestinationCard: React.FC<{ destination: Destination }> = ({ destination }) => {
   return (
-    <div className="flex flex-col rounded-2xl bg-white shadow-md hover:shadow-lg transition-all cursor-pointer relative overflow-hidden group">
+    <div className="flex flex-col rounded-2xl bg-white shadow-md hover:shadow-lg transition-all cursor-pointer relative overflow-hidden group h-full">
       {/* Top Row: category icon, bookmark */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
         <div className="bg-hurulu-teal rounded-full p-2 shadow">
@@ -46,11 +46,12 @@ const DestinationCard: React.FC<{ destination: Destination }> = ({ destination }
       </div>
 
       {/* Image */}
-      <div className="h-48 w-full bg-gray-100 relative">
+      <div className="h-48 sm:h-56 md:h-48 lg:h-56 w-full bg-gray-100 relative">
         <img
           src={destination.image_url || "https://via.placeholder.com/400x280"}
           alt={destination.name}
           className="w-full h-full object-cover rounded-t-2xl"
+          loading="lazy"
         />
         {destination.featured && (
           <span className="absolute bottom-2 left-2 bg-yellow-400 text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
@@ -63,12 +64,13 @@ const DestinationCard: React.FC<{ destination: Destination }> = ({ destination }
             src={destination.avatar_url}
             alt="User"
             className="absolute bottom-2 right-2 h-8 w-8 rounded-full border-2 border-white shadow"
+            loading="lazy"
           />
         )}
       </div>
 
       {/* Card content */}
-      <div className="flex-1 flex flex-col px-5 pt-4 pb-4">
+      <div className="flex-1 flex flex-col p-4 sm:p-5">
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
           <span className="capitalize">{destination.category || "Activity"}</span>
           <span>·</span>
@@ -79,7 +81,7 @@ const DestinationCard: React.FC<{ destination: Destination }> = ({ destination }
         </h3>
         <div className="flex items-center text-sm text-gray-500 mb-3">
           <MapPin className="h-4 w-4 mr-2 text-hurulu-teal" />
-          <span>{destination.address || "Address, Sri Lanka"}</span>
+          <span className="truncate">{destination.address || "Address, Sri Lanka"}</span>
         </div>
         {/* Rating */}
         <div className="flex items-center space-x-1 mb-1">
